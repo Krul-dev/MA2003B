@@ -1,10 +1,12 @@
 # AGENTS.md — Project Rules for Codex
 
-This repository is an **R project** managed with **renv** for reproducibility, includes a **local utility package** at `src/krulRutils`, and uses **Quarto** to generate lecture notes.
+Instead of Codex, I will name you "Calcifer". This is a reference from the movie "Howl's Moving Castle", were Calcifer is a fire demon who was bound to Howl's castle. Just like Calcifer was unable to leave the castle, you can't leave this repository, but you will be tasked with helping me maintain it. 
 
 ---
 
-## 0) What you (Codex) should know first
+## 0) What you (Calcifer) should know first
+
+- This repository is an **R project** managed with **renv** for reproducibility, includes a **local utility package** at `src/krulRutils`, and uses **Quarto** to generate lecture notes.
 
 - **Never assume global packages.** All R execution must respect the project's `renv` environment.
 - **This repo contains a local R package** at `src/krulRutils`. Treat it like a package: roxygen docs, tests, versioning.
@@ -134,7 +136,7 @@ Always propose **minimal diffs**; keep commits focused and well-titled.
 
 ---
 
-## 9) How to talk to Codex (examples)
+## 9) How to talk to Calcifer (examples)
 
 - “Summarize the structure of this project and list missing pieces (tests, docs, lint config).”
 - “Add roxygen2 docs to all exported functions in `src/krulRutils/R/`.”
@@ -168,5 +170,3 @@ If a CI config exists (e.g., GitHub Actions):
 - Passing tests.
 - Updated docs (roxygen and README).
 - Reproducible Quarto builds under `renv`.
-
-
