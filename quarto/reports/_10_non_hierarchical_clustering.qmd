@@ -1,0 +1,151 @@
+# Non-Hierarchical Clustering
+
+In \emph{non-hierarchical clustering}, we partition the data into a predetermined number of clusters. In this case, we don't obtain a dendrogram, but rather a flat set of clusters. There are many methods for non-hierarchical clustering, but most of them can be classified as \emph{partitioning methods}, \emph{density-based methods} or \emph{model-based methods}.
+
+## Partitioning Methods 
+
+These methods create a partition of the data into a set of $k$ clusters, where $k$ is specified by the user. They rely on optimizing some objective function that measures the quality of the clustering. The most common partitioning methods are:
+
+\begin{itemize} 
+\item \textbf{k-means clustering}: This method aims to partition the data into $k$ clusters such that the sum of squared distances between each point and the centroid of its assigned cluster is minimized. The algorithm iteratively assigns points to the nearest centroid and updates the centroids until convergence. 
+\item \textbf{k-medoids clustering}: Similar to k-means, but instead of using the mean of the points in a cluster as the centroid, it uses an actual data point (the medoid) that minimizes the sum of distances to all other points in the cluster. This makes k-medoids more robust to noise and outliers. 
+\item \textbf{CLARA (Clustering LARge Applications)}: An extension of k-medoids that is designed to handle large datasets by sampling a subset of the data and applying the k-medoids algorithm to this sample. 
+\item \textbf{PAM (Partitioning Around Medoids)}: A specific implementation of the k-medoids algorithm that uses a greedy approach to find the medoids and assign points to clusters. 
+\end{itemize}
+
+## Density-Based Methods 
+
+These methods identify clusters based on the density of points in the data space. They can find clusters of arbitrary shapes and are robust to noise. The most common density-based methods are:
+\begin{itemize}
+\item \textbf{DBSCAN (Density-Based Spatial Clustering of Applications with Noise)}: This method defines clusters as areas of high density separated by areas of low density. It requires two parameters: the radius $\epsilon$ that defines the neighborhood around a point, and the minimum number of points required to form a dense region. Points that do not belong to any cluster are considered noise. 
+\item \textbf{OPTICS (Ordering Points To Identify the Clustering Structure)}: An extension of DBSCAN that creates an ordering of the points based on their density, allowing for the identification of clusters at different density levels. 
+\item \textbf{Mean Shift}: This method iteratively shifts each point towards the mean of the points in its neighborhood, effectively finding the modes of the data distribution. Clusters are formed around these modes. 
+\end{itemize} 
+
+## Model-Based Methods 
+
+These methods assume that the data is generated from a mixture of underlying probability distributions, and they aim to identify these distributions and assign points to clusters based on their likelihood of belonging to each distribution. The most common model-based methods are: 
+\begin{itemize}
+\item \textbf{Gaussian Mixture Models (GMM)}: This method models the data as a mixture of several Gaussian distributions, each representing a cluster. The parameters of the distributions are estimated using the Expectation-Maximization (EM) algorithm, and points are assigned to clusters based on their posterior probabilities. 
+\item \textbf{Bayesian Clustering}: This method uses Bayesian inference to estimate the parameters of the underlying distributions and to assign points to clusters. It can incorporate prior knowledge about the data and can handle uncertainty in the clustering process. 
+\item \textbf{Latent Class Analysis (LCA)}: This method is used for categorical data and assumes that the data is generated from a mixture of latent classes. It estimates the parameters of the classes and assigns points to classes based on their posterior probabilities. 
+\end{itemize}
+
+## Choosing the Right Method 
+
+The choice of non-hierarchical clustering method depends on the characteristics of the data and the specific goals of the analysis. Here are some guidelines for choosing the right method: 
+\begin{itemize} 
+\item If the data is continuous and the clusters are expected to be spherical and of similar size, k-means or k-medoids may be appropriate. 
+\item If the data contains noise or outliers, or if the clusters are expected to be of different shapes and sizes, density-based methods like DBSCAN or OPTICS may be more suitable. 
+\item If the data is believed to be generated from a mixture of underlying distributions, model-based methods like GMM or Bayesian clustering may be the best choice. 
+\item If the data is categorical, Latent Class Analysis (LCA) may be the most appropriate method. 
+\item If the dataset is large, consider using methods like CLARA that are designed to handle large datasets efficiently. 
+\end{itemize}
+
+## Example in R 
+
+We will now demonstrate how the different non-hierarchical clustering methods can be implemented in R using the `iris` dataset. We will start by loading the necessary libraries.
+
+```{r}
+#| output: false
+
+library(viridis)
+library(cluster)
+library(dbscan)
+library(mclust)
+``` 
+Next, we will prepare the data and  show the plot comparing the results of different clustering methods.
+
+```{r}
+#| fig-cap: "Clustering results on the iris dataset using Sepal.Width and Sepal.Length only. Notice the different shapes of the clusters obtained by different methods." 
+#| fig-width: 8
+#| fig-height: 6
+
+set.seed(123)
+
+# Use only Sepal.Width and Sepal.Length
+dat <- as_tibble(iris) %>%
+  select(Sepal.Width, Sepal.Length)
+
+X <- as.matrix(dat)
+
+# k-means (partitioning)
+km <- stats::kmeans(X, centers = 3, nstart = 50)$cluster
+
+# PAM (k-medoids, partitioning)
+pam_res <- cluster::pam(X, k = 3)
+pam <- pam_res$clustering
+
+# CLARA (large-sample k-medoids, partitioning)
+clara_res <- cluster::clara(X, k = 3, samples = 50)
+clara <- clara_res$clustering
+
+# GMM (model-based, Gaussian mixtures)
+gmm_res <- mclust::Mclust(X, G = 3)
+gmm <- gmm_res$classification
+
+# DBSCAN (density-based): light tuning to obtain ~3 clusters; reassign noise if any
+choose_dbscan <- function(X, minPts = 5, eps_grid = seq(0.15, 0.8, by = 0.01), max_noise_prop = 0.1) {
+  for (eps in eps_grid) {
+    res <- dbscan::dbscan(X, eps = eps, minPts = minPts)
+    k <- length(unique(res$cluster[res$cluster > 0]))
+    noise_prop <- mean(res$cluster == 0)
+    if (k == 3 && noise_prop <= max_noise_prop) {
+      attr(res, "eps") <- eps
+      return(res)
+    }
+  }
+  cand <- lapply(eps_grid, function(eps) {
+    res <- dbscan::dbscan(X, eps = eps, minPts = minPts)
+    k <- length(unique(res$cluster[res$cluster > 0]))
+    list(eps = eps, res = res, k = k, noise = mean(res$cluster == 0))
+  })
+  ord <- order(sapply(cand, `[[`, "k") |> (function(x) abs(x - 3))(),
+               sapply(cand, `[[`, "noise"))
+  best <- cand[[ord[1]]]
+  attr(best$res, "eps") <- best$eps
+  best$res
+}
+
+assign_noise_to_nearest <- function(X, cl) {
+  lab <- cl
+  noise_idx <- which(lab == 0)
+  if (length(noise_idx) == 0) return(lab)
+  keep <- lab > 0
+  centers <- t(sapply(sort(unique(lab[keep])), function(k) colMeans(X[lab == k, , drop = FALSE])))
+  rownames(centers) <- as.character(sort(unique(lab[keep])))
+  for (i in noise_idx) {
+    d <- apply(centers, 1, function(cn) sum((X[i, ] - cn)^2))
+    lab[i] <- as.integer(names(which.min(d)))
+  }
+  lab
+}
+
+db_raw <- choose_dbscan(X, minPts = 5)
+db <- assign_noise_to_nearest(X, db_raw$cluster)
+
+# Bind results for faceted plotting
+labs <- list(
+  `k-means` = km,
+  PAM = pam,
+  GMM = gmm,
+  DBSCAN = db
+)
+
+plot_df <- dplyr::bind_rows(lapply(names(labs), function(m) {
+  tibble::tibble(
+    Sepal.Width = dat$Sepal.Width,
+    Sepal.Length = dat$Sepal.Length,
+    Method = m,
+    Cluster = factor(labs[[m]])
+  )
+}))
+
+ggplot(plot_df, aes(Sepal.Width, Sepal.Length, color = Cluster)) +
+  geom_point(size = 1.3, alpha = 1) +
+  c_scale_color("C red", "C green", "C blue") +
+  facet_wrap(~ Method, ncol = 2) +
+  labs(title = "Iris sepal-based clustering",
+       x = "Sepal Width", y = "Sepal Length") +
+  theme_krul()
+```

@@ -73,4 +73,8 @@ format:
 
 {{< include _7_factor_analysis_theoretical_models.qmd >}}
 {{< include _8_factor_analysis_practical_methods.qmd >}}
+
+\part{Cluster Analysis}
+
 {{< include _9_hierarchical_clustering.qmd >}}
+{{< include _10_non_hierarchical_clustering.qmd >}}
