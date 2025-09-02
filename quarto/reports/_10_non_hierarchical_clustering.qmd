@@ -42,6 +42,26 @@ The choice of non-hierarchical clustering method depends on the characteristics 
 \item If the dataset is large, consider using methods like CLARA that are designed to handle large datasets efficiently. 
 \end{itemize}
 
+## Evaluation of Clustering Results 
+
+Evaluating the quality of clustering results is crucial to ensure that the chosen method has effectively captured the underlying structure of the data. Here are some common techniques for evaluating clustering results: 
+\begin{itemize}
+\item \textbf{Internal Validation}: This involves using metrics that assess the quality of the clustering based on the data itself, without reference to external information. Common internal validation metrics include:
+  \begin{itemize}
+  \item \emph{Silhouette Score}: Measures how similar a point is to its own cluster compared to other clusters. A higher silhouette score indicates better-defined clusters.
+  \item \emph{Davies-Bouldin Index}: Evaluates the average similarity ratio of each cluster with its most similar cluster. Lower values indicate better clustering.
+  \item \emph{Calinski-Harabasz Index}: Measures the ratio of between-cluster variance to within-cluster variance. Higher values indicate better-defined clusters.
+  \end{itemize}
+  \item \textbf{External Validation}: This involves comparing the clustering results to known labels or ground truth, if available. Common external validation metrics include:
+  \begin{itemize}
+  \item \emph{Adjusted Rand Index (ARI)}: Measures the similarity between the clustering results and the ground truth, adjusted for chance. Higher values indicate better agreement.
+  \item \emph{Normalized Mutual Information (NMI)}: Measures the amount of information shared between the clustering results and the ground truth. Higher values indicate better agreement.
+  \end{itemize}
+  \item \textbf{Stability Analysis}: This involves assessing the robustness of the clustering results by applying the clustering algorithm to different subsets of the data or by adding noise to the data. Consistent clustering results across different runs indicate stable clusters. 
+  \item \textbf{Visual Inspection}: Visualizing the clustering results using scatter plots, heatmaps, or dendrograms can provide insights into the structure of the clusters and help identify any potential issues with the clustering. 
+\end{itemize}
+
+
 ## Example in R 
 
 We will now demonstrate how the different non-hierarchical clustering methods can be implemented in R using the `iris` dataset. We will start by loading the necessary libraries.
@@ -49,102 +69,60 @@ We will now demonstrate how the different non-hierarchical clustering methods ca
 ```{r}
 #| output: false
 
-library(viridis)
 library(cluster)
 library(dbscan)
 library(mclust)
+library(krulRutils)
 ``` 
 Next, we will prepare the data and  show the plot comparing the results of different clustering methods.
 
 ```{r}
-#| fig-cap: "Clustering results on the iris dataset using Sepal.Width and Sepal.Length only. Notice the different shapes of the clusters obtained by different methods." 
+#| fig-cap: "Clustering results on the iris dataset using Sepal.Width and Sepal.Length only. Notice the different shapes of the clusters obtained by different methods."
 #| fig-width: 8
 #| fig-height: 6
 
 set.seed(123)
 
 # Use only Sepal.Width and Sepal.Length
-dat <- as_tibble(iris) %>%
+iris_tbl <- as_tibble(iris) %>%
   select(Sepal.Width, Sepal.Length)
 
-X <- as.matrix(dat)
+iris_matrix <- as.matrix(iris_tbl)
 
 # k-means (partitioning)
-km <- stats::kmeans(X, centers = 3, nstart = 50)$cluster
+iris_kmeans <- kmeans(iris_matrix, centers = 3, nstart = 50)$cluster
 
 # PAM (k-medoids, partitioning)
-pam_res <- cluster::pam(X, k = 3)
-pam <- pam_res$clustering
-
-# CLARA (large-sample k-medoids, partitioning)
-clara_res <- cluster::clara(X, k = 3, samples = 50)
-clara <- clara_res$clustering
+iris_pam <- pam(iris_matrix, k = 3)$clustering
 
 # GMM (model-based, Gaussian mixtures)
-gmm_res <- mclust::Mclust(X, G = 3)
-gmm <- gmm_res$classification
+gmm <- Mclust(iris_matrix, G = 3)$classification
 
-# DBSCAN (density-based): light tuning to obtain ~3 clusters; reassign noise if any
-choose_dbscan <- function(X, minPts = 5, eps_grid = seq(0.15, 0.8, by = 0.01), max_noise_prop = 0.1) {
-  for (eps in eps_grid) {
-    res <- dbscan::dbscan(X, eps = eps, minPts = minPts)
-    k <- length(unique(res$cluster[res$cluster > 0]))
-    noise_prop <- mean(res$cluster == 0)
-    if (k == 3 && noise_prop <= max_noise_prop) {
-      attr(res, "eps") <- eps
-      return(res)
-    }
-  }
-  cand <- lapply(eps_grid, function(eps) {
-    res <- dbscan::dbscan(X, eps = eps, minPts = minPts)
-    k <- length(unique(res$cluster[res$cluster > 0]))
-    list(eps = eps, res = res, k = k, noise = mean(res$cluster == 0))
-  })
-  ord <- order(sapply(cand, `[[`, "k") |> (function(x) abs(x - 3))(),
-               sapply(cand, `[[`, "noise"))
-  best <- cand[[ord[1]]]
-  attr(best$res, "eps") <- best$eps
-  best$res
-}
 
-assign_noise_to_nearest <- function(X, cl) {
-  lab <- cl
-  noise_idx <- which(lab == 0)
-  if (length(noise_idx) == 0) return(lab)
-  keep <- lab > 0
-  centers <- t(sapply(sort(unique(lab[keep])), function(k) colMeans(X[lab == k, , drop = FALSE])))
-  rownames(centers) <- as.character(sort(unique(lab[keep])))
-  for (i in noise_idx) {
-    d <- apply(centers, 1, function(cn) sum((X[i, ] - cn)^2))
-    lab[i] <- as.integer(names(which.min(d)))
-  }
-  lab
-}
-
-db_raw <- choose_dbscan(X, minPts = 5)
-db <- assign_noise_to_nearest(X, db_raw$cluster)
+db_raw <- choose_dbscan(iris_matrix, min_pts = 5)
+db <- assign_noise_to_nearest(iris_matrix, db_raw$cluster)
 
 # Bind results for faceted plotting
 labs <- list(
-  `k-means` = km,
-  PAM = pam,
+  `k-means` = iris_kmeans,
+  PAM = iris_pam,
   GMM = gmm,
   DBSCAN = db
 )
 
-plot_df <- dplyr::bind_rows(lapply(names(labs), function(m) {
-  tibble::tibble(
-    Sepal.Width = dat$Sepal.Width,
-    Sepal.Length = dat$Sepal.Length,
-    Method = m,
-    Cluster = factor(labs[[m]])
+plot_df <- bind_rows(lapply(names(labs), function(m) {
+  tibble(
+    sepal_width = iris_tbl$Sepal.Width,
+    sepal_length = iris_tbl$Sepal.Length,
+    method = m,
+    cluster = factor(labs[[m]])
   )
 }))
 
-ggplot(plot_df, aes(Sepal.Width, Sepal.Length, color = Cluster)) +
+ggplot(plot_df, aes(sepal_width, sepal_length, color = cluster)) +
   geom_point(size = 1.3, alpha = 1) +
   c_scale_color("C red", "C green", "C blue") +
-  facet_wrap(~ Method, ncol = 2) +
+  facet_wrap(~ method, ncol = 2) +
   labs(title = "Iris sepal-based clustering",
        x = "Sepal Width", y = "Sepal Length") +
   theme_krul()
