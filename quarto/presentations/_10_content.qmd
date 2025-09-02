@@ -1,0 +1,256 @@
+# An Introduction to the Tidyverse
+
+# The Standardized Moments
+
+# Normality Testing
+
+# Introduction to Multivariate Analysis
+
+# Normal Multivariate Distribution
+
+# Principal Component Analysis
+
+# Factor Analysis: Theoretical Models
+
+# Factor Analysis: Practical Methods
+
+# Hierarchical Clustering
+
+# Non-Hierarchical Clustering
+
+### Non-Hierarchical Clustering
+
+
+```{r}
+#| output: false
+#| echo: false
+library(tidyverse) # for data manipulation and visualization
+library(broom) # for tidying data
+library(here) # for file paths
+library(patchwork) # for combining ggplots
+library(krulRutils) # for custom package functions
+library(magrittr) # for the pipe operator
+library(e1071) # for skewness and kurtosis functions
+library(car) # for robust scaling functions
+library(ggforce) # for ggplot2 extensions
+library(mvtnorm) # for multivariate normal distribution
+library(MVN) # for multivariate normality tests
+library(ellipse) # for generating covariance ellipses
+library(ggrepel) # for better text annotations in ggplot2
+library(lavaan) # for structural equation modeling
+library(cluster)
+library(dbscan)
+library(mclust)
+
+
+options(scipen = 999)
+```
+
+
+In \alert{non-hierarchical clustering}, we partition the data into a predetermined number of clusters.
+
+\bigpause 
+
+In this case, we don't obtain a dendrogram, but rather a flat set of clusters.
+
+\bigpause
+
+There are many methods for non-hierarchical clustering, but most of them can be classified as \alert{partitioning methods}, \alert{density-based methods} or \alert{model-based methods}.
+
+## Partitioning Methods 
+
+### Partitioning Methods
+
+These methods create a partition of the data into a set of $k$ clusters, where $k$ is specified by the user.
+
+\bigpause
+
+They rely on optimizing some objective function that measures the quality of the clustering.
+
+\bigpause
+
+The most common partitioning methods are:
+
+###
+
+\begin{itemize} 
+\item \alert{k-means clustering}: This method aims to partition the data into $k$ clusters such that the sum of squared distances between each point and the centroid of its assigned cluster is minimized. The algorithm iteratively assigns points to the nearest centroid and updates the centroids until convergence. \pause
+\item \alert{k-medoids clustering}: Similar to k-means, but instead of using the mean of the points in a cluster as the centroid, it uses an actual data point (the medoid) that minimizes the sum of distances to all other points in the cluster. This makes k-medoids more robust to noise and outliers. \pause
+\item \alert{CLARA (Clustering LARge Applications)}: An extension of k-medoids that is designed to handle large datasets by sampling a subset of the data and applying the k-medoids algorithm to this sample. \pause
+\item \alert{PAM (Partitioning Around Medoids)}: A specific implementation of the k-medoids algorithm that uses a greedy approach to find the medoids and assign points to clusters. 
+\end{itemize}
+
+## Density-Based Methods 
+
+### Density-Based Methods
+
+These methods identify clusters based on the density of points in the data space.
+
+\bigpause
+
+They can find clusters of arbitrary shapes and are robust to noise.
+
+\bigpause
+
+The most common density-based methods are:
+
+
+###
+
+\begin{itemize}
+\item \alert{DBSCAN (Density-Based Spatial Clustering of Applications with Noise)}: This method defines clusters as areas of high density separated by areas of low density. It requires two parameters: the radius $\epsilon$ that defines the neighborhood around a point, and the minimum number of points required to form a dense region. Points that do not belong to any cluster are considered noise. \pause
+\item \alert{OPTICS (Ordering Points To Identify the Clustering Structure)}: An extension of DBSCAN that creates an ordering of the points based on their density, allowing for the identification of clusters at different density levels. \pause
+\item \alert{Mean Shift}: This method iteratively shifts each point towards the mean of the points in its neighborhood, effectively finding the modes of the data distribution. Clusters are formed around these modes. 
+\end{itemize} 
+
+## Model-Based Methods 
+
+### Model-Based Methods
+
+These methods assume that the data is generated from a mixture of underlying probability distributions, and they aim to identify these distributions and assign points to clusters based on their likelihood of belonging to each distribution.
+
+\bigpause
+
+The most common model-based methods are: 
+
+###
+\begin{itemize}
+\item \alert{Gaussian Mixture Models (GMM)}: This method models the data as a mixture of several Gaussian distributions, each representing a cluster. The parameters of the distributions are estimated using the Expectation-Maximization (EM) algorithm, and points are assigned to clusters based on their posterior probabilities. \pause
+\item \alert{Bayesian Clustering}: This method uses Bayesian inference to estimate the parameters of the underlying distributions and to assign points to clusters. It can incorporate prior knowledge about the data and can handle uncertainty in the clustering process. \pause
+\item \alert{Latent Class Analysis (LCA)}: This method is used for categorical data and assumes that the data is generated from a mixture of latent classes. It estimates the parameters of the classes and assigns points to classes based on their posterior probabilities. 
+\end{itemize}
+
+## Choosing the Right Method 
+
+### Choosing the Right Method
+
+The choice of non-hierarchical clustering method depends on the characteristics of the data and the specific goals of the analysis.
+
+\bigpause
+
+Here are some guidelines for choosing the right method: 
+
+
+###
+
+\begin{itemize} 
+\item If the data is continuous and the clusters are expected to be spherical and of similar size, k-means or k-medoids may be appropriate. \pause
+\item If the data contains noise or outliers, or if the clusters are expected to be of different shapes and sizes, density-based methods like DBSCAN or OPTICS may be more suitable. \pause
+\item If the data is believed to be generated from a mixture of underlying distributions, model-based methods like GMM or Bayesian clustering may be the best choice. \pause
+\item If the data is categorical, Latent Class Analysis (LCA) may be the most appropriate method. \pause
+\item If the dataset is large, consider using methods like CLARA that are designed to handle large datasets efficiently. 
+\end{itemize}
+
+## Evaluation of Clustering Results 
+
+### Evaluation of Clustering Results
+
+Evaluating the quality of clustering results is crucial to ensure that the chosen method has effectively captured the underlying structure of the data.
+
+\bigpause
+
+Here are some common techniques for evaluating clustering results: 
+
+###
+
+\begin{itemize}
+\item \alert{Internal Validation}: This involves using metrics that assess the quality of the clustering based on the data itself, without reference to external information. Common internal validation metrics include: \pause
+  \begin{itemize}
+  \item \alert{Silhouette Score}: Measures how similar a point is to its own cluster compared to other clusters. A higher silhouette score indicates better-defined clusters. \pause 
+  \item \alert{Davies-Bouldin Index}: Evaluates the average similarity ratio of each cluster with its most similar cluster. Lower values indicate better clustering. \pause
+  \item \alert{Calinski-Harabasz Index}: Measures the ratio of between-cluster variance to within-cluster variance. Higher values indicate better-defined clusters. 
+  \end{itemize}
+\end{itemize} 
+
+###
+
+\begin{itemize}
+  \item \alert{External Validation}: This involves comparing the clustering results to known labels or ground truth, if available. Common external validation metrics include: \pause
+  \begin{itemize}
+  \item \alert{Adjusted Rand Index (ARI)}: Measures the similarity between the clustering results and the ground truth, adjusted for chance. Higher values indicate better agreement. \pause
+  \item \alert{Normalized Mutual Information (NMI)}: Measures the amount of information shared between the clustering results and the ground truth. Higher values indicate better agreement. 
+  \end{itemize} 
+\end{itemize} 
+
+### 
+
+\begin{itemize}
+  \item \alert{Stability Analysis}: This involves assessing the robustness of the clustering results by applying the clustering algorithm to different subsets of the data or by adding noise to the data. Consistent clustering results across different runs indicate stable clusters. \pause
+  \item \alert{Visual Inspection}: Visualizing the clustering results using scatter plots, heatmaps, or dendrograms can provide insights into the structure of the clusters and help identify any potential issues with the clustering. 
+\end{itemize}
+
+
+## Example in R 
+
+### Example in R
+
+We will now illustrate some of the non-hierarchical clustering methods using the well-known iris dataset.
+
+\bigpause
+
+We will use only the Sepal.Width and Sepal.Length variables for simplicity. 
+
+\bigpause
+
+The methods we will compare are:
+\begin{itemize}
+\item \alert{k-means clustering (a partitioning method)} 
+\item \alert{PAM (Partitioning Around Medoids, a k-medoids method)}
+\item \alert{Gaussian Mixture Models (GMM, a model-based method) }
+\item \alert{DBSCAN (a density-based method)}
+\end{itemize}
+
+###
+
+```{r}
+#| fig-cap: ""
+#| fig-width: 12
+#| fig-height: 6
+#| echo: false
+
+set.seed(123)
+
+# Use only Sepal.Width and Sepal.Length
+iris_tbl <- as_tibble(iris) %>%
+  select(Sepal.Width, Sepal.Length)
+
+iris_matrix <- as.matrix(iris_tbl)
+
+# k-means (partitioning)
+iris_kmeans <- kmeans(iris_matrix, centers = 3, nstart = 50)$cluster
+
+# PAM (k-medoids, partitioning)
+iris_pam <- pam(iris_matrix, k = 3)$clustering
+
+# GMM (model-based, Gaussian mixtures)
+gmm <- Mclust(iris_matrix, G = 3)$classification
+
+
+db_raw <- choose_dbscan(iris_matrix, min_pts = 5)
+db <- assign_noise_to_nearest(iris_matrix, db_raw$cluster)
+
+# Bind results for faceted plotting
+labs <- list(
+  `k-means` = iris_kmeans,
+  PAM = iris_pam,
+  GMM = gmm,
+  DBSCAN = db
+)
+
+plot_df <- bind_rows(lapply(names(labs), function(m) {
+  tibble(
+    sepal_width = iris_tbl$Sepal.Width,
+    sepal_length = iris_tbl$Sepal.Length,
+    method = m,
+    cluster = factor(labs[[m]])
+  )
+}))
+
+ggplot(plot_df, aes(sepal_length, sepal_width, color = cluster)) +
+  geom_point(size = 1.3, alpha = 1) +
+  c_scale_color("C green", "C red", "C blue") +
+  facet_wrap(~ method, ncol = 2) +
+  labs(title = "Iris sepal-based clustering",
+       x = "Sepal Length", y = "Sepal Width") +
+  theme_krul()
+```
