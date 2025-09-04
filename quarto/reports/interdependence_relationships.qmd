@@ -78,3 +78,8 @@ format:
 
 {{< include _9_hierarchical_clustering.qmd >}}
 {{< include _10_non_hierarchical_clustering.qmd >}}
+
+\part{Time Series Analysis}
+
+{{< include _11_stationary_time_series.qmd >}}
+{{< include _12_non_stationary_time_series.qmd >}}
