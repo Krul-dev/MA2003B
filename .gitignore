@@ -7,3 +7,5 @@ output/
 AGENTS.md
 
 /.quarto/
+
+**/*.quarto_ipynb
